@@ -28,7 +28,7 @@ router.get('/me', auth, async (req, res) => {
 // @desc:   Create or update user profile
 //@access:  Private
 router.post('/', [ auth, [
-  check('status', 'Stuatus is required.').not().isEmpty(),
+  check('status', 'Status is required.').not().isEmpty(),
   check('skills', 'Skills is required.').not().isEmpty()
 ]], async (req, res) => {
   const errors = validationResult(req);
@@ -87,10 +87,43 @@ router.post('/', [ auth, [
     profile = new Profile(profileFields);
     await profile.save();
     res.json(profile);
-    
+
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error.')
   }
 });
+
+// @route:  GET api/profile
+// @desc:   Get all profiles
+//@access:  Public
+router.get('/', async (req, res) => {
+  try {
+    const profiles = await Profile.find().populate('user', ['name', 'avatar']);
+    res.json(profiles);
+  } catch(err) {
+    console.error(err.message);
+    res.status(500).send('Server error.')
+  }
+});
+
+// @route:  GET api/profile/user/:user_id
+// @desc:   Get profile by user id
+//@access:  Public
+router.get('/user/:user_id', async (req, res) => {
+  try {
+    const profile = await (await Profile.findOne({ user: req.params.user_id }).populate('user', ['name', 'avatar']));
+
+    if(!profile) return res.status(400).json({ msg: 'Profile not found.'});
+    res.json(profile);
+
+  } catch(err) {
+    console.error(err.message);
+    if(err.kind == 'ObjectId') {
+      return res.status(400).json({ msg: 'Profile not found.'})
+    }
+    res.status(500).send('Server error.')
+  }
+});
+
 module.exports = router;
